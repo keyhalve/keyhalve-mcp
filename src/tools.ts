@@ -39,7 +39,7 @@ export const TOOLS: ToolDef[] = [
       },
       required: ['input'],
     },
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: { title: 'Verify a sealed document', readOnlyHint: true, openWorldHint: true },
   },
   {
     name: 'keyhalve_status',
@@ -52,7 +52,7 @@ export const TOOLS: ToolDef[] = [
       },
       required: ['document_id'],
     },
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: { title: 'Check live document status', readOnlyHint: true, openWorldHint: true },
   },
   {
     name: 'keyhalve_explain',
@@ -68,7 +68,7 @@ export const TOOLS: ToolDef[] = [
         },
       },
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
+    annotations: { title: 'Explain a KeyHalve verdict', readOnlyHint: true, openWorldHint: false },
   },
 ];
 

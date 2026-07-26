@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "KeyHalve verify-MCP — free, public, stateless MCP server for verifying KeyHalve-sealed documents. Zero runtime dependencies.",
+  "mcpName": "com.keyhalve/verify",
+  "keywords": ["mcp", "mcp-server", "modelcontextprotocol", "document-verification", "keyhalve"],
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
