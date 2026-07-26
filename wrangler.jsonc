@@ -1,0 +1,16 @@
+{
+  // KeyHalve verify-MCP — free, public, stateless document verification for AIs.
+  // Same CF business account as the watchdog scheduler (holds keyhalve.com).
+  "name": "keyhalve-verify-mcp",
+  "main": "src/worker.ts",
+  "account_id": "c07507edacda0060a1462fe05263126e",
+  "compatibility_date": "2026-07-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "mcp.keyhalve.com", "custom_domain": true }],
+  "observability": {
+    "enabled": true,
+    // Sampled, headers-free logs — request BODIES are never logged (they can
+    // carry pasted verify URLs; the fragment is client-side but stay strict).
+    "head_sampling_rate": 0.1
+  }
+}

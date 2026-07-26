@@ -1,0 +1,19 @@
+{
+  "name": "@keyhalve/verify-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KeyHalve verify-MCP — free, public, stateless MCP server for verifying KeyHalve-sealed documents. Zero runtime dependencies.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260726.1",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.4",
+    "wrangler": "^4.114.0"
+  }
+}
