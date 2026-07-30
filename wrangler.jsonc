@@ -1,9 +1,12 @@
 {
   // KeyHalve verify-MCP — free, public, stateless document verification for AIs.
-  // Same CF business account as the watchdog scheduler (holds keyhalve.com).
+  // Deploys to the DEDICATED keyhalve.com account (admin@keyhalve.com) — the
+  // domain moved out of the shared ValidPay account on 2026-07-29. The
+  // watchdog scheduler intentionally stays in the old account as an
+  // independent canary until its own migration.
   "name": "keyhalve-verify-mcp",
   "main": "src/worker.ts",
-  "account_id": "c07507edacda0060a1462fe05263126e",
+  "account_id": "29b1a720855e276c1cff58ace3f832e9",
   "compatibility_date": "2026-07-26",
   "compatibility_flags": ["nodejs_compat"],
   "routes": [{ "pattern": "mcp.keyhalve.com", "custom_domain": true }],
