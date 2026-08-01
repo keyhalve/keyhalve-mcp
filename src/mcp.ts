@@ -111,9 +111,52 @@ async function handleMessage(msg: JsonRpcRequest): Promise<JsonRpcResponse | nul
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Protocol-Version, Mcp-Session-Id',
+  // Mcp-Method / Mcp-Name: required request headers in the 2026-07-28 spec
+  // (final since 2026-07-28) — browser-based modern clients fail CORS
+  // preflight if they are not allowed here.
+  'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Protocol-Version, Mcp-Session-Id, Mcp-Method, Mcp-Name',
   'Access-Control-Max-Age': '86400',
 };
+
+/**
+ * 2026-07-28 spec (FINAL as of build time): Streamable HTTP mirrors the body's
+ * `method` and `params.name`/`params.uri` into `Mcp-Method` / `Mcp-Name`
+ * headers so intermediaries can route without parsing bodies, and servers must
+ * reject header/body disagreement (`HeaderMismatch`, -32020) — otherwise a
+ * gateway routing on the header and a server executing the body can be steered
+ * to different operations. This server stays on the initialize-era protocol
+ * and accepts the headers TOLERANTLY: validated whenever present, never
+ * required — so pre-2026 clients keep working unchanged while spec-compliant
+ * clients (which always send correct values) get the integrity check.
+ */
+const HEADER_MISMATCH = -32020;
+
+/** Undo the spec's `=?base64?…?=` sentinel encoding for header values. */
+function decodeHeaderValue(v: string): string {
+  if (!v.startsWith('=?base64?') || !v.endsWith('?=')) return v;
+  try {
+    const bytes = Uint8Array.from(atob(v.slice(9, -2)), (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return v;
+  }
+}
+
+function headerBodyMismatch(request: Request, msg: JsonRpcRequest): string | null {
+  const hMethod = request.headers.get('Mcp-Method');
+  if (hMethod !== null && hMethod !== msg.method) {
+    return `Header mismatch: Mcp-Method header value '${hMethod}' does not match body method '${msg.method}'`;
+  }
+  const hName = request.headers.get('Mcp-Name');
+  if (hName !== null) {
+    const decoded = decodeHeaderValue(hName);
+    const bodyName = (msg.params?.name ?? msg.params?.uri) as string | undefined;
+    if (typeof bodyName === 'string' && decoded !== bodyName) {
+      return `Header mismatch: Mcp-Name header value '${decoded}' does not match body value '${bodyName}'`;
+    }
+  }
+  return null;
+}
 
 export async function handleMcpRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -144,6 +187,20 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       status: 400,
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     });
+  }
+
+  // Header/body agreement (2026-07-28). Single-message POSTs only: the modern
+  // spec is one message per POST, so batch senders are by definition legacy
+  // clients that do not send these headers.
+  const single = Array.isArray(parsed) ? undefined : messages[0];
+  if (single !== undefined) {
+    const mismatch = headerBodyMismatch(request, single);
+    if (mismatch !== null) {
+      return new Response(JSON.stringify(rpcError(single.id ?? null, HEADER_MISMATCH, mismatch)), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+      });
+    }
   }
 
   const responses = (await Promise.all(messages.map(handleMessage))).filter((r): r is JsonRpcResponse => r !== null);
