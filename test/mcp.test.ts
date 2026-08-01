@@ -185,3 +185,106 @@ describe('tools with mocked network', () => {
     expect(json.result.structuredContent.error).toBe('not_found');
   });
 });
+
+// Prompt 166 T1 — directory pre-flight guarantees.
+describe('directory pre-flight (Prompt 166)', () => {
+  // Smithery's crawler and most directory validators probe anonymously: an
+  // unauthenticated request must never see 401/403 from this server, on any
+  // route. (The worker has no auth code at all — this test pins that.)
+  it('anonymous requests are never 401/403 — tools/list, tools/call, health, root', async () => {
+    const { default: worker } = await import('../src/worker');
+    const anon = (url: string, init?: RequestInit) =>
+      (worker as any).fetch(new Request(url, init)) as Promise<Response>;
+
+    const list = await anon('https://mcp.keyhalve.com/mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'SmitheryBot/1.0' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    });
+    expect(list.status).toBe(200);
+    const tools = ((await list.json()) as any).result.tools;
+    expect(tools).toHaveLength(3);
+    // The annotations directories require — unannotated tools are treated as
+    // writes needing per-call confirmation.
+    for (const t of tools) {
+      expect(t.annotations.readOnlyHint).toBe(true);
+      expect(typeof t.annotations.title).toBe('string');
+      expect(t.annotations.title.length).toBeGreaterThan(0);
+    }
+
+    for (const path of ['/health', '/']) {
+      const res = await anon(`https://mcp.keyhalve.com${path}`);
+      expect(res.status).toBe(200);
+    }
+
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 404 })));
+    const call = await anon('https://mcp.keyhalve.com/mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'keyhalve_status', arguments: { document_id: 'vp_zzzzzzzzzzzz' } } }),
+    });
+    // Tool-level not_found is an isError RESULT with HTTP 200 — never 401/403.
+    expect(call.status).toBe(200);
+  });
+
+  // 2026-07-28 spec headers (final): tolerated when absent, validated when present.
+  const postWith = (headers: Record<string, string>, body: unknown) =>
+    new Request('https://mcp.keyhalve.com/mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    });
+
+  it('matching Mcp-Method/Mcp-Name headers pass through', async () => {
+    const res = await handleMcpRequest(
+      postWith(
+        { 'Mcp-Method': 'tools/call', 'Mcp-Name': 'keyhalve_explain' },
+        { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'keyhalve_explain', arguments: { topic: 'verdicts' } } },
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as any).result.isError).toBeFalsy();
+  });
+
+  it('Mcp-Method disagreeing with the body → 400 HeaderMismatch (-32020)', async () => {
+    const res = await handleMcpRequest(
+      postWith({ 'Mcp-Method': 'tools/list' }, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'keyhalve_explain', arguments: {} } }),
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error.code).toBe(-32020);
+  });
+
+  it('Mcp-Name disagreeing with params.name → 400 HeaderMismatch (-32020)', async () => {
+    const res = await handleMcpRequest(
+      postWith(
+        { 'Mcp-Method': 'tools/call', 'Mcp-Name': 'keyhalve_verify' },
+        { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'keyhalve_explain', arguments: { topic: 'verdicts' } } },
+      ),
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error.code).toBe(-32020);
+  });
+
+  it('base64-sentinel-encoded Mcp-Name decodes before comparison', async () => {
+    const encoded = `=?base64?${btoa('keyhalve_explain')}?=`;
+    const res = await handleMcpRequest(
+      postWith(
+        { 'Mcp-Name': encoded },
+        { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'keyhalve_explain', arguments: { topic: 'verdicts' } } },
+      ),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('headers absent (pre-2026 clients) → unchanged behavior', async () => {
+    const res = await handleMcpRequest(post({ jsonrpc: '2.0', id: 1, method: 'tools/list' }));
+    expect(res.status).toBe(200);
+  });
+
+  it('CORS preflight allows the 2026-07-28 headers', async () => {
+    const res = await handleMcpRequest(new Request('https://mcp.keyhalve.com/mcp', { method: 'OPTIONS' }));
+    const allowed = (res.headers.get('Access-Control-Allow-Headers') ?? '').toLowerCase();
+    expect(allowed).toContain('mcp-method');
+    expect(allowed).toContain('mcp-name');
+  });
+});

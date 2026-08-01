@@ -1,0 +1,84 @@
+name: publish-mcp
+
+# Publish the npm bridge + the official MCP Registry entry (com.keyhalve/verify).
+#
+# GATED (Prompt 166): the FIRST run is workflow_dispatch by Mike's explicit go,
+# after [BOX] completes the one-time bootstrap in docs/REGISTRY-RUNBOOK.md
+# (npm token, Ed25519 keypair, apex TXT record, repo secrets). Thereafter a
+# published GitHub release auto-republishes so the registry entry tracks
+# releases. Both secrets missing → the run fails fast with the runbook pointer
+# instead of half-publishing.
+#
+#   NPM_TOKEN        — npm automation token for @keyhalve (publish rights)
+#   MCP_PRIVATE_KEY  — hex Ed25519 seed whose pubkey is in the keyhalve.com TXT record
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency: publish-mcp
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: gate — secrets present
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: |
+          missing=""
+          [ -z "$NPM_TOKEN" ] && missing="$missing NPM_TOKEN"
+          [ -z "$MCP_PRIVATE_KEY" ] && missing="$missing MCP_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repo secret(s):$missing — [BOX] bootstrap in docs/REGISTRY-RUNBOOK.md has not run. Publishing is Mike-gated; nothing was published."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # The worker's own tests gate the endpoint the bridge fronts.
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: sanity — server.json versions match npm/package.json
+        run: |
+          NPMV=$(node -p "require('./npm/package.json').version")
+          SRVV=$(node -p "require('./server.json').packages[0].version")
+          MCPN=$(node -p "require('./npm/package.json').mcpName")
+          SRVN=$(node -p "require('./server.json').name")
+          [ "$NPMV" = "$SRVV" ] || { echo "::error::npm/package.json version $NPMV != server.json packages[0].version $SRVV"; exit 1; }
+          [ "$MCPN" = "$SRVN" ] || { echo "::error::mcpName $MCPN != server.json name $SRVN"; exit 1; }
+
+      - name: publish npm bridge
+        working-directory: npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: authenticate to MCP Registry (DNS, com.keyhalve namespace)
+        run: ./mcp-publisher login dns --domain keyhalve.com --private-key "${{ secrets.MCP_PRIVATE_KEY }}"
+
+      - name: publish to MCP Registry
+        run: ./mcp-publisher publish
+
+      - name: verify listing
+        run: |
+          sleep 5
+          curl -sf "https://registry.modelcontextprotocol.io/v0.1/servers?search=com.keyhalve/verify" | grep -q 'com.keyhalve/verify' \
+            && echo "registry listing verified" \
+            || { echo "::warning::listing not yet visible via search API — check manually"; }

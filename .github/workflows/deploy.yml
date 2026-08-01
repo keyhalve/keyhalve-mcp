@@ -26,10 +26,16 @@ jobs:
         run: |
           for i in $(seq 1 6); do
             sleep 10
+            LIST=$(curl -sf -X POST https://mcp.keyhalve.com/mcp -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' || echo '')
+            # Directory pre-flight (Prompt 166): the live tools/list must carry
+            # the annotations every directory requires — 3 readOnlyHint:true
+            # tools, each with a title — or the listing gets rejected/demoted.
             if curl -sf https://mcp.keyhalve.com/health | grep -q '"ok":true' \
-              && curl -sf -X POST https://mcp.keyhalve.com/mcp -H 'Content-Type: application/json' \
-                -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | grep -q 'keyhalve_verify'; then
-              echo "smoke passed on attempt $i"; exit 0
+              && echo "$LIST" | grep -q 'keyhalve_verify' \
+              && [ "$(echo "$LIST" | grep -o '"readOnlyHint":true' | wc -l)" = "3" ] \
+              && [ "$(echo "$LIST" | grep -o '"title":"[^"]' | wc -l)" -ge 3 ]; then
+              echo "smoke passed on attempt $i (annotations served)"; exit 0
             fi
             echo "attempt $i failed; retrying"
           done
