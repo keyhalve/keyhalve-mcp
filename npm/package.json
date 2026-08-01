@@ -11,14 +11,15 @@
     "verification",
     "keyhalve"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "keyhalve-verify-mcp": "bin/keyhalve-verify-mcp.mjs"
   },
   "files": [
     "bin/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
