@@ -60,9 +60,15 @@ jobs:
           [ "$NPMV" = "$SRVV" ] || { echo "::error::npm/package.json version $NPMV != server.json packages[0].version $SRVV"; exit 1; }
           [ "$MCPN" = "$SRVN" ] || { echo "::error::mcpName $MCPN != server.json name $SRVN"; exit 1; }
 
-      - name: publish npm bridge
+      - name: publish npm bridge (idempotent — skips if the version is already on npm)
         working-directory: npm
-        run: npm publish --access public
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if npm view "@keyhalve/verify-mcp@$V" version >/dev/null 2>&1; then
+            echo "@keyhalve/verify-mcp@$V already on npm — skipping publish (registry step can re-run safely)"
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
