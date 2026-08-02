@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.keyhalve/verify",
-  "title": "KeyHalve — verify sealed documents",
-  "description": "Free, public, no-account verification of KeyHalve-sealed documents. Read-only: checks seal existence, live status, ciphertext integrity, and the KeyHalve rail's independent attestation. Never receives decryption keys; cannot read sealed contents.",
+  "title": "KeyHalve \u00e2\u20ac\u201d verify sealed documents",
+  "description": "Free, no-account verification of KeyHalve-sealed documents. Read-only; never receives keys.",
   "repository": {
     "url": "https://github.com/keyhalve/keyhalve-mcp",
     "source": "github"
