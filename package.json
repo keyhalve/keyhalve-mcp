@@ -2,8 +2,14 @@
   "name": "@keyhalve/verify-mcp-worker",
   "version": "1.0.0",
   "private": true,
-  "description": "KeyHalve verify-MCP — free, public, stateless MCP server for verifying KeyHalve-sealed documents. Zero runtime dependencies. The publishable npm bridge (which carries the registry mcpName) lives in npm/.",
-  "keywords": ["mcp", "mcp-server", "modelcontextprotocol", "document-verification", "keyhalve"],
+  "description": "KeyHalve verify-MCP \u00e2\u20ac\u201d free, public, stateless MCP server for verifying KeyHalve-sealed documents. Zero runtime dependencies. The publishable npm bridge (which carries the registry mcpName) lives in npm/.",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "modelcontextprotocol",
+    "document-verification",
+    "keyhalve"
+  ],
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
@@ -15,6 +21,8 @@
     "@cloudflare/workers-types": "^5.20260726.1",
     "typescript": "^5.5.4",
     "vitest": "^3.2.6",
-    "wrangler": "^4.114.0"
+    "wrangler": "^4.114.0",
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "zod": "^3.23.0"
   }
 }
