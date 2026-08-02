@@ -20,6 +20,32 @@ if your client supports remote MCP servers, you don't need it: just add
 npx @keyhalve/verify-mcp
 ```
 
+## Embed in your own MCP server
+
+Building an MCP server of your own? Mount the KeyHalve verify toolset with one
+dependency and one line — your users get document verification without leaving
+your connector:
+
+```js
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { mountKeyhalveVerify } from "@keyhalve/verify-mcp";
+
+const server = new McpServer({ name: "my-platform", version: "1.0.0" });
+mountKeyhalveVerify(server);
+// … register your own tools, connect your transport as usual.
+```
+
+The mounted handlers proxy to the hosted KeyHalve verifier
+(`https://mcp.keyhalve.com/mcp`) — no verdict logic runs in your process, so
+you always get current verdict behavior without upgrading. Options are
+deliberately minimal: `{ baseUrl }` (point at a staging worker) and
+`{ toolPrefix }` (renames the tools if your server has a name collision —
+descriptions and the credit line are library-fixed and not overridable).
+
+**One-way rule:** this export is verify-only, forever. Sealing never ships
+here — verification is the free, neutral, embeddable surface; sealing belongs
+to the platforms.
+
 ## Remote endpoint (preferred where supported)
 
 ```json

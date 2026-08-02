@@ -57,7 +57,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'keyhalve_explain',
     description:
-      'Plain-language explanation of what a KeyHalve verification verdict means and why it can be trusted (blind rail, split keys, commitments, revocation). Optionally focused on one topic.',
+      'Plain-language explanation of what a KeyHalve verification verdict means and why it can be trusted (blind rail, three-share custody, commitments, revocation). Optionally focused on one topic.',
     inputSchema: {
       type: 'object',
       properties: {
