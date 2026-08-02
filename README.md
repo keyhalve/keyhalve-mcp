@@ -51,3 +51,12 @@ on the business CF account (same account as the watchdog scheduler).
 
 Submitting to the Claude Connectors Directory / ChatGPT App Directory is an outward-facing
 step — prepared separately, goes out only on Mike's go.
+
+## Listings
+
+Directory-listing assets live in this repo — reuse them, don't invent copy:
+
+- `llms-install.md` — AI-agent install steps (Cline's AI-driven install; also the canonical per-client snippets).
+- `glama.json` — Glama claim file (maintainers; their live schema is maintainers-only).
+- `assets/icon-400.png` — 400×400 icon (white split-circle glyph on Ink #0E1116, from the brand kit).
+- Descriptions must stay byte-consistent with `src/tools.ts` and pass the approved-claims register (no "split key", no "tamper-proof", no issuer-identity claims).
