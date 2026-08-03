@@ -1,13 +1,13 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.keyhalve/verify",
-  "title": "KeyHalve \u00e2\u20ac\u201d verify sealed documents",
+  "title": "KeyHalve - verify sealed documents",
   "description": "Free, no-account verification of KeyHalve-sealed documents. Read-only; never receives keys.",
   "repository": {
     "url": "https://github.com/keyhalve/keyhalve-mcp",
     "source": "github"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "remotes": [
     {
       "type": "streamable-http",
