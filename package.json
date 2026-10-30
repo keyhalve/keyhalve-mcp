@@ -21,7 +21,7 @@
     "@cloudflare/workers-types": "^5.20260726.1",
     "typescript": "^5.5.4",
     "vitest": "^3.2.6",
-    "wrangler": "^4.114.0",
+    "wrangler": "^4.156.0",
     "@modelcontextprotocol/sdk": "^1.17.0",
     "zod": "^3.23.0"
   }
